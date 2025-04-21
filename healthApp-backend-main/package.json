@@ -1,0 +1,40 @@
+{
+  "name": "healthapp-backend-server",
+  "version": "1.0.1",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "Kayodee",
+  "license": "ISC",
+  "description": "ExpressJS backend server for healthapp.",
+  "dependencies": {
+    "@google/generative-ai": "^0.22.0",
+    "bcrypt": "^5.1.1",
+    "cloudinary": "^1.41.3",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "date-fns": "^4.1.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "googleapis": "^144.0.0",
+    "html-to-docx": "^1.8.0",
+    "html-to-text": "^9.0.5",
+    "joi": "^17.13.3",
+    "jsonwebtoken": "^9.0.2",
+    "mammoth": "^1.9.0",
+    "mongoose": "^8.6.3",
+    "multer": "^1.4.5-lts.1",
+    "multer-storage-cloudinary": "^4.0.0",
+    "node-cron": "^3.0.3",
+    "nodemailer": "^6.10.0",
+    "npm": "^10.9.2",
+    "pdfmake": "^0.2.18",
+    "puppeteer": "^24.2.1",
+    "twilio": "^5.5.0",
+    "undici": "^6.21.1"
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
+}

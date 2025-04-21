@@ -1,0 +1,27 @@
+{
+    "version": 2,
+    "builds": [
+      { "src": "server.js", "use": "@vercel/node" },
+      { "src": "api/updateDeviceData.js", "use": "@vercel/node" },
+      { "src": "api/resetDailyStats.js", "use": "@vercel/node" }
+    ],
+    "routes": [
+      { "src": "/api/(.*)", "dest": "server.js" },
+      { "src": "/api/updateDeviceData", "dest": "api/updateDeviceData.js" },
+      { "src": "/api/resetDailyStats", "dest": "api/resetDailyStats.js" }
+    ],
+    "crons": [
+      {
+        "path": "/api/updateDeviceData",
+        "schedule": "* * * * *"
+      },
+      {
+        "path": "/api/resetDailyStats",
+        "schedule": "0 0 * * *"
+      }
+    ],
+    "functions": {
+      "api/updateDeviceData.js": { "memory": 512, "maxDuration": 30 },
+      "api/resetDailyStats.js": { "memory": 512, "maxDuration": 30 }
+    }
+  }
