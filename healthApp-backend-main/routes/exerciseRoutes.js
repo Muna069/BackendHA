@@ -660,7 +660,7 @@ cron.schedule("0 6 * * *", async () => {
       console.error("Error assigning AI workouts:", error.message);
   }
 });
-/*
+
 router.get("/ai-assigned-exercises/:userId", async (req, res) => {
   try {
       const userId = req.params.userId;
@@ -676,7 +676,7 @@ router.get("/ai-assigned-exercises/:userId", async (req, res) => {
   } catch (error) {
       res.status(500).json({ error: "Error fetching AI-assigned exercises" });
   }
-});*/
+});
 
 router.get("/trainer-assigned-exercises/:userId", async (req, res) => {
   try {
