@@ -25,7 +25,6 @@ async function generateGeminiAIResponse(prompt) {
     }
 }
 
-{/* 
 router.post("/add", uploadMeal.single("picture"), async (req, res) => {
   try {
     const { name, calories, nutrition } = req.body;
@@ -49,7 +48,6 @@ router.post("/add", uploadMeal.single("picture"), async (req, res) => {
   }
 });
 
-*/}
 
 router.post("/add", uploadMeal.single("picture"), async (req, res) => {
   try {
