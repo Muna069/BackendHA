@@ -5,7 +5,7 @@ const generateGeminiAIResponse = async (prompt) => {
         const response = await axios.post(
             "https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateText",
             { prompt },
-            { headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.GEMINI_API_KEY}` } }
+            { headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.GOOGLE_AI_API_KEY}` } }
         );
 
         return response.data.candidates[0]?.output || null;
