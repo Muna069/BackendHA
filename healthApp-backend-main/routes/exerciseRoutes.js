@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 const express = require("express");
 const Exercise = require("../models/exerciseModel");
 const Notification = require("../models/notificationModel");
@@ -227,98 +228,96 @@ router.post("/assign-exercise", async (req, res) => {
   });
   
 
-  function extractExerciseNames(response) {
-  return response
-      .split("\n")
-      .map(line => line.replace(/^\d+\.\s*/, "").trim()) // remove number and dot
-      .filter(line => line.length > 0)
-      .slice(0, 2);
-}
+  router.post("/ai-assign-exercise/:userId", async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ message: "User not found." });
 
-router.post("/ai-assign-exercise/:userId", async (req, res) => {
-  try {
-      const { userId } = req.params;
-      const user = await User.findById(userId);
-      if (!user) return res.status(404).json({ message: "User not found." });
+        // Get today's date in YYYY-MM-DD format
+        const today = new Date().toISOString().split("T")[0];
 
-      const today = new Date().toISOString().split("T")[0];
+        // Check how many AI-assigned exercises the user already has for today
+        const todayExercises = await Exercise.find({
+            assignedTo: userId,
+            assignedByType: "ai",
+            createdAt: { $gte: new Date(today) }, // Fetch today's exercises
+        });
 
-      const todayExercises = await Exercise.find({
-          assignedTo: userId,
-          assignedByType: "ai",
-          createdAt: { $gte: new Date(today) },
-      });
+        if (todayExercises.length >= 2) {
+            return res.status(400).json({ message: "User already has 2 AI-assigned exercises for today." });
+        }
 
-      if (todayExercises.length >= 2) {
-          return res.status(400).json({ message: "User already has 2 AI-assigned exercises for today." });
-      }
+        // Fetch all exercises from the database
+        const allExercises = await Exercise.find();
+        if (allExercises.length === 0) {
+            return res.status(404).json({ message: "No exercises found in the database." });
+        }
 
-      const allExercises = await Exercise.find();
-      if (!allExercises.length) {
-          return res.status(404).json({ message: "No exercises found in the database." });
-      }
+        // Construct AI prompt
+        const prompt = `
+            Recommend up to 2 exercises for a user with these attributes:
+            - BMI: ${user.bmi}
+            - Age: ${user.age}
+            - Sex: ${user.sex}
+            - Goal: ${user.goal}
 
-      const prompt = `
-Recommend up to 2 exercises for a user with:
-- BMI: ${user.bmi}
-- Age: ${user.age}
-- Sex: ${user.sex}
-- Goal: ${user.goal}
+            Choose from this list:
+            ${allExercises.map((ex) => `${ex.name}: ${ex.description}`).join("\n")}
 
-Choose from:
-${allExercises.map((ex) => `${ex.name}: ${ex.description}`).join("\n")}
+            Respond with a list of 1 or 2 exercise names.
+        `;
 
-Respond with a list of 1 or 2 exercise names only.
-`;
+        // Get AI response
+        const aiResponse = await generateGeminiAIResponse(prompt);
+        const exerciseNames = aiResponse.split("\n").slice(0, 2); // Extract up to 2 exercises
 
-      const aiResponse = await generateGeminiAIResponse(prompt);
-      const exerciseNames = extractExerciseNames(aiResponse);
+        // Find the selected exercises in the database
+        const selectedExercises = allExercises.filter((ex) => exerciseNames.includes(ex.name));
 
-      const selectedExercises = allExercises.filter((ex) =>
-          exerciseNames.includes(ex.name)
-      );
+        if (selectedExercises.length === 0) {
+            return res.status(400).json({ message: "AI could not select valid exercises." });
+        }
 
-      if (!selectedExercises.length) {
-          return res.status(400).json({ message: "AI could not select valid exercises." });
-      }
+        // Assign the exercises to the user
+        const assignedExercises = selectedExercises.map((ex) => ({
+            name: ex.name,
+            description: ex.description,
+            reps: ex.reps,
+            time: ex.time,
+            thumbnail: ex.thumbnail,
+            workoutGif: ex.workoutGif,
+            assignedTo: userId,
+            assignedByType: "ai",
+        }));
 
-      const assignedExercises = selectedExercises.map((ex) => ({
-          name: ex.name,
-          description: ex.description,
-          reps: ex.reps,
-          time: ex.time,
-          thumbnail: ex.thumbnail,
-          workoutGif: ex.workoutGif,
-          assignedTo: userId,
-          assignedByType: "ai",
-      }));
+        await Exercise.insertMany(assignedExercises);
 
-      await Exercise.insertMany(assignedExercises);
-      res.json({ message: "AI exercises assigned successfully", assignedExercises });
-  } catch (error) {
-      res.status(500).json({ error: error.message });
-  }
+        res.json({ message: "AI exercises assigned successfully", assignedExercises });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
- // Route to get AI-assigned exercises for a user (only today's exercises)
+
 router.get("/ai-assigned-exercises/:userId", async (req, res) => {
     try {
-        const userId = req.params.userId;
-        const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+        const { userId } = req.params;
 
+        // Fetch today's AI-assigned exercises
+        const today = new Date().toISOString().split("T")[0];
         const exercises = await Exercise.find({
             assignedTo: userId,
             assignedByType: "ai",
             createdAt: { $gte: new Date(today) },
         });
 
-        res.json(exercises);
+        res.json({ aiAssignedExercises: exercises });
     } catch (error) {
-        res.status(500).json({ error: "Error fetching AI-assigned exercises" });
+        res.status(500).json({ error: error.message });
     }
 });
 
-
-  // Route to get AI-assigned exercises for a user (only today's exercises)
+  //Route to get AI-assigned exercises for a user (only today's exercises)
 router.get("/ai-assigned-exercises/:userId", async (req, res) => {
     try {
         const userId = req.params.userId;
@@ -399,10 +398,15 @@ cron.schedule("0 6 * * *", async () => {
         console.log("Running AI exercise assignment job...");
 
         const users = await User.find();
+        if (!users.length) return console.log("No users found.");
+
         const allExercises = await Exercise.find();
+        if (!allExercises.length) return console.log("No exercises found.");
+
         const today = new Date().toISOString().split("T")[0];
 
         for (const user of users) {
+            // Check if user already has 2 AI-assigned exercises for today
             const todayExercises = await Exercise.find({
                 assignedTo: user._id,
                 assignedByType: "ai",
@@ -411,26 +415,24 @@ cron.schedule("0 6 * * *", async () => {
 
             if (todayExercises.length >= 2) continue;
 
+            // Generate AI prompt
             const prompt = `
-Recommend up to 2 exercises for a user with:
-- BMI: ${user.bmi}
-- Age: ${user.age}
-- Sex: ${user.sex}
-- Goal: ${user.goal}
+                Recommend up to 2 exercises for a user with these attributes:
+                - BMI: ${user.bmi}
+                - Age: ${user.age}
+                - Sex: ${user.sex}
+                - Goal: ${user.goal}
 
-Choose from:
-${allExercises.map((ex) => `${ex.name}: ${ex.description}`).join("\n")}
+                Choose from this list:
+                ${allExercises.map((ex) => `${ex.name}: ${ex.description}`).join("\n")}
 
-Respond with a list of 1 or 2 exercise names only.
-`;
+                Respond with a list of 1 or 2 exercise names.
+            `;
 
             const aiResponse = await generateGeminiAIResponse(prompt);
-            const exerciseNames = extractExerciseNames(aiResponse);
+            const exerciseNames = aiResponse ? aiResponse.split("\n").slice(0, 2) : [];
 
-            const selectedExercises = allExercises.filter((ex) =>
-                exerciseNames.includes(ex.name)
-            );
-
+            const selectedExercises = allExercises.filter((ex) => exerciseNames.includes(ex.name));
             if (!selectedExercises.length) continue;
 
             const assignedExercises = selectedExercises.map((ex) => ({
@@ -442,7 +444,7 @@ Respond with a list of 1 or 2 exercise names only.
                 workoutGif: ex.workoutGif,
                 assignedTo: user._id,
                 assignedByType: "ai",
-                expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+                expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // Expires in 24 hours
             }));
 
             await Exercise.insertMany(assignedExercises);
@@ -658,7 +660,7 @@ cron.schedule("0 6 * * *", async () => {
       console.error("Error assigning AI workouts:", error.message);
   }
 });
-
+/*
 router.get("/ai-assigned-exercises/:userId", async (req, res) => {
   try {
       const userId = req.params.userId;
@@ -674,7 +676,7 @@ router.get("/ai-assigned-exercises/:userId", async (req, res) => {
   } catch (error) {
       res.status(500).json({ error: "Error fetching AI-assigned exercises" });
   }
-});
+});*/
 
 router.get("/trainer-assigned-exercises/:userId", async (req, res) => {
   try {
