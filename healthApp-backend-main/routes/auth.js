@@ -15,7 +15,7 @@ const generateToken = ( id ) => jwt.sign({ id }, process.env.JWT_SECRET, { expir
 
 const generateRefreshToken = ( id ) => jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "14d"} );
 
-/*
+
 // twilio (phone otp)
 const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
 
@@ -124,7 +124,7 @@ router.post('/verify-otp', async (req, res) => {
         res.status(500).json({ error: "Internal server error" });
     }
 });
-*/
+
 
 router.post('/register', async (req, res) => {
     const startTime = Date.now();
