@@ -578,7 +578,7 @@ cron.schedule("0 8 * * *", async () => {
               createdAt: { $gte: new Date(today) },
           });
 
-TıPKı AY GIBI 🌚, [4/24/2025 12:54 PM]
+
 if (todayWorkouts.length >= 2) continue;
 
           const prompt = `
