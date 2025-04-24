@@ -173,6 +173,15 @@ router.post("/complete/:id", async (req, res) => {
   router.get("/ai-assigned-exercises/:userId", async (req, res) => {
     try {
       const { userId } = req.params;
+      const user = await User.findById(userId);
+  
+      if (!user) return res.status(404).json({ message: "User not found." });
+  
+      // ✅ Only allow regular users to fetch AI-assigned exercises
+      if (user.role !== 'user') {
+        return res.status(403).json({ message: "Fetching AI-assigned exercises is only allowed for regular users." });
+      }
+  
       const startOfDay = new Date();
       startOfDay.setHours(0, 0, 0, 0);
   
@@ -187,11 +196,10 @@ router.post("/complete/:id", async (req, res) => {
       res.json({ aiAssignedExercises: exercises });
   
     } catch (err) {
-      console.error("Error fetching AI‐assigned exercises:", err);
+      console.error("Error fetching AI-assigned exercises:", err);
       res.status(500).json({ error: err.message });
     }
   });
-  
   
 // Route to get trainer-assigned exercises for a user
 router.get("/trainer-assigned-exercises/:userId", async (req, res) => {
@@ -210,29 +218,36 @@ router.get("/trainer-assigned-exercises/:userId", async (req, res) => {
     try {
       const { userId } = req.params;
       const user = await User.findById(userId);
+  
       if (!user) return res.status(404).json({ message: "User not found." });
   
-      // start of today
+      // ✅ Only allow AI to assign exercises to regular users
+      if (user.role !== 'user') {
+        return res.status(403).json({ message: "Exercise assignment is only allowed for regular users." });
+      }
+  
+      // Start of today
       const startOfDay = new Date();
       startOfDay.setHours(0, 0, 0, 0);
   
-      // check how many AI assignments today
+      // Check how many AI assignments today
       const todayCount = await AiExercise.countDocuments({
         userId,
         assignedByType: "ai",
         assignedAt: { $gte: startOfDay },
       });
+  
       if (todayCount >= 2) {
         return res.status(400).json({ message: "User already has 2 AI-assigned exercises for today." });
       }
   
-      // get all templates
+      // Get all exercises from the DB
       const allExercises = await Exercise.find();
       if (!allExercises.length) {
         return res.status(404).json({ message: "No exercises available." });
       }
   
-      // build prompt
+      // Build the AI prompt
       const prompt = `
   Recommend up to 2 exercises for a user with these attributes:
   - BMI: ${user.bmi}
@@ -246,16 +261,17 @@ router.get("/trainer-assigned-exercises/:userId", async (req, res) => {
   Respond with a list of 1 or 2 exercise names, one per line.
   `;
   
-      // call Gemini
+      // Call Gemini (AI)
       const aiResponse = await generateGeminiAIResponse(prompt);
       console.log("AI Raw Response:\n", aiResponse);
   
-      // parse names
+      // Parse AI response to extract exercise names
       const lines = aiResponse
         .split("\n")
         .map(l => l.trim())
         .filter(Boolean);
-      // only keep names that exist in DB (case-insensitive)
+  
+      // Match with existing exercise names (case-insensitive)
       const exerciseNames = lines.filter(name =>
         allExercises.some(ex => ex.name.trim().toLowerCase() === name.toLowerCase())
       );
@@ -265,7 +281,7 @@ router.get("/trainer-assigned-exercises/:userId", async (req, res) => {
         return res.status(400).json({ message: "AI could not select valid exercises." });
       }
   
-      // prepare AiExercise docs
+      // Prepare exercise assignment documents
       const assignments = allExercises
         .filter(ex => exerciseNames.includes(ex.name))
         .map(ex => ({
@@ -287,7 +303,6 @@ router.get("/trainer-assigned-exercises/:userId", async (req, res) => {
       res.status(500).json({ error: error.message });
     }
   });
-  
   
 // Route to get trainer-assigned exercises for a user (only today's exercises)
 router.get("/trainer-assigned-exercises/:userId", async (req, res) => {
@@ -347,7 +362,7 @@ router.post("/assign-exercise", async (req, res) => {
 });
 
 // AI Exercise Assignment Cron Job (Runs at 6:00 AM Daily)
-cron.schedule("20 8 * * *", async () => {
+cron.schedule("40 8 * * *", async () => {
   try {
     console.log("Running AI exercise assignment job...");
 
