@@ -100,6 +100,21 @@ router.post("/add", async (req, res) => {
   }
 });
 
+router.get("/user/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const userMeals = await Meal.find({ userId });
+
+    if (!userMeals || userMeals.length === 0) {
+      return res.status(404).json({ message: "No meals found for this user" });
+    }
+
+    res.json(userMeals);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Get all meals
 router.get("/all", async (req, res) => {
   try {
