@@ -1,89 +1,75 @@
-/* eslint-disable @typescript-eslint/no-require-imports */
 const express = require("express");
 const DailyInsight = require("../models/dailyInsightModel");
 const cron = require("node-cron");
-const MockDevice = require("../models/mockDeviceModel");
-const DailyDeviceData = require("../models/dailyDeviceDataModel");
 
 const router = express.Router();
 
-// CRON job to save daily data at midnight
+// **Update Daily Insights from Smartwatch Data**
+router.post("/update", async (req, res) => {
+  const { userId, caloriesBurned, sleepMinutes, distance, heartRate } = req.body;
+
+  try {
+    const today = new Date().setHours(0, 0, 0, 0);
+    let insight = await DailyInsight.findOne({ userId, date: today });
+
+    if (!insight) {
+      insight = new DailyInsight({ userId, date: today });
+    }
+
+    // Update daily totals
+    insight.totalCaloriesBurned += caloriesBurned;
+    insight.totalSleepHours += sleepMinutes / 60;
+    insight.totalDistance += distance;
+    insight.heartRateReadings.push(heartRate);
+
+    await insight.save();
+    res.json({ message: "Daily insights updated", insight });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// **Get all daily insights for a user**
+router.get("/all/:userId", async (req, res) => {
+  try {
+    const insights = await DailyInsight.find({ userId: req.params.userId }).sort({ date: -1 });
+    res.json(insights);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// **Get a specific day's insights**
+router.get("/:userId/:date", async (req, res) => {
+  try {
+    const date = new Date(req.params.date).setHours(0, 0, 0, 0);
+    const insight = await DailyInsight.findOne({ userId: req.params.userId, date });
+
+    if (!insight) return res.status(404).json({ message: "No data found for this date" });
+
+    res.json(insight);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// **Cron Job: Finalize Daily Insights at Midnight**
 cron.schedule("0 0 * * *", async () => {
   try {
-    const devices = await MockDevice.find();
+    const today = new Date().setHours(0, 0, 0, 0);
+    const insights = await DailyInsight.find({ date: today });
 
-    for (const device of devices) {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0); // Set time to midnight
-
-      const averageHeartRate = device.heartRate; // Or your average calculation logic
-
-      const dailyData = new DailyDeviceData({
-        userId: device.userId,
-        date: today, // Save as Date object (not a timestamp number)
-        sleepMinutes: device.sleepMinutes,
-        heartRate: averageHeartRate,
-        stepsCount: device.stepsCount,
-        caloriesBurned: device.caloriesBurned,
-      });
-
-      await dailyData.save();
+    for (const insight of insights) {
+      if (insight.heartRateReadings.length > 0) {
+        const totalHeartRate = insight.heartRateReadings.reduce((a, b) => a + b, 0);
+        insight.averageHeartRate = totalHeartRate / insight.heartRateReadings.length;
+      }
+      insight.heartRateReadings = []; // Reset readings for the next day
+      await insight.save();
     }
-
-    // Reset MockDevice data
-    await MockDevice.updateMany({}, {
-      $set: {
-        sleepMinutes: 0,
-        stepsCount: 0,
-        caloriesBurned: 0,
-      },
-    });
-
-    console.log("Daily data saved and MockDevice data reset.");
+    console.log("Daily insights finalized.");
   } catch (err) {
-    console.error("Error saving daily data:", err);
-  }
-});
-
-// GET full history sorted by date
-router.get("/history/:userId", async (req, res) => {
-  try {
-    const history = await DailyDeviceData.find({ userId: req.params.userId }).sort({ date: -1 });
-    res.json(history);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// GET yesterday's history for a user (safer date range query)
-router.get("/history/yesterday/:userId", async (req, res) => {
-  try {
-    const userId = req.params.userId;
-
-    const today = new Date();
-    const startOfYesterday = new Date(today);
-    startOfYesterday.setDate(today.getDate() - 1);
-    startOfYesterday.setHours(0, 0, 0, 0);
-
-    const endOfYesterday = new Date(startOfYesterday);
-    endOfYesterday.setHours(23, 59, 59, 999);
-
-    const yesterdayData = await DailyDeviceData.findOne({
-      userId: userId,
-      date: {
-        $gte: startOfYesterday,
-        $lte: endOfYesterday,
-      },
-    });
-
-    if (!yesterdayData) {
-      return res.status(404).json({ message: "No data found for yesterday." });
-    }
-
-    res.json(yesterdayData);
-  } catch (err) {
-    console.error("Error fetching yesterday's data:", err);
-    res.status(500).json({ error: err.message });
+    console.error("Error finalizing daily insights:", err);
   }
 });
 
