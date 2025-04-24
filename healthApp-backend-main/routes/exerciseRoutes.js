@@ -38,7 +38,7 @@ router.post("/add", uploadExercise.fields([
   try {
     const { name, description, reps, time } = req.body;
 
-    if (!name  !description  !reps  !time  !req.files["thumbnail"]  !req.files["workoutGif"]) {
+  if (!name || !description || !reps || !time || !req.files["thumbnail"] || !req.files["workoutGif"]) {
       return res.status(400).json({ message: "All fields including images are required" });
     }
 
