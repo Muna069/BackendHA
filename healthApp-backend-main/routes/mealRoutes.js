@@ -1,34 +1,86 @@
 const express = require("express");
+const axios = require("axios");
 const Meal = require("../models/mealModel");
-const UserMealRecommendation = require("../models/aiMealSuggestionModel");
 const User = require("../models/userModel");
+const UserMealRecommendation = require("../models/aiMealSuggestionModel");
+const { generateGeminiAIResponse } = require("../utils/geminiAI");
 const cron = require("node-cron");
-const { uploadMeal } = require("../config/multerConfig");
-const { GoogleGenerativeAI } = require('@google/generative-ai');
-
-const path = require('path');
 
 const router = express.Router();
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY);
-
-async function generateGeminiAIResponse(prompt) {
-    try {
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text();
-        return text;
-    } catch (error) {
-        console.error("Error generating Gemini AI response:", error);
-        return null;
+// Route: Search Meals from Edamam API (Search Bar)
+router.get("/search", async (req, res) => {
+  try {
+    const query = req.query.q;
+    if (!query) {
+      return res.status(400).json({ message: "Query parameter is required" });
     }
-}
 
-router.post("/add", uploadMeal.single("picture"), async (req, res) => {
+    const appId = ("767233da");
+    const appKey = ("49cb1cd66bfdd55d6ebba648f01d6ea7");
+
+    const edamamUrl = `https://api.edamam.com/api/food-database/v2/parser?ingr=${encodeURIComponent(query)}&app_id=${appId}&app_key=${appKey}`;
+
+    const response = await axios.get(edamamUrl);
+    const hints = response.data.hints || [];
+
+    const meals = hints.map((item) => {
+      const food = item.food;
+      return {
+        name: food.label,
+        calories: food.nutrients.ENERC_KCAL,
+        nutrition: {
+          protein: food.nutrients.PROCNT,
+          fat: food.nutrients.FAT,
+          carbs: food.nutrients.CHOCDF,
+          fiber: food.nutrients.FIBTG || 0,
+        },
+      };
+    });
+
+    res.status(200).json(meals);
+  } catch (error) {
+    res.status(500).json({ error: "Error fetching data from Edamam." });
+  }
+});
+
+// Route: Fetch nutrition data from Edamam for a given meal string
+router.get("/meal-nutrition", async (req, res) => {
+  const { Meal } = req.query;
+  if (!Meal) {
+    return res.status(400).json({ error: "Meal name is required" });
+  }
+
+  try {
+    const response = await axios.get("https://api.edamam.com/api/nutrition-data", {
+      params: {
+        app_id: process.env.EDAMAM_APP_ID,
+        app_key: process.env.EDAMAM_APP_KEY,
+        'nutrition-type': 'logging',
+        ingr: Meal,
+      },
+    });
+
+    const data = response.data;
+    const nutrition = {
+      calories: data.calories,
+      carbs: data.totalNutrients?.CHOCDF?.quantity || 0,
+      protein: data.totalNutrients?.PROCNT?.quantity || 0,
+      fat: data.totalNutrients?.FAT?.quantity || 0,
+      fiber: data.totalNutrients?.FIBTG?.quantity || 0,
+    };
+
+    res.json({ Meal, nutrition });
+
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch nutrition data" });
+  }
+});
+
+// Add meal
+router.post("/add", async (req, res) => {
   try {
     const { name, calories, nutrition } = req.body;
-    const picture = req.file ? req.file.path : null;
 
     if (!name || !calories || !nutrition) {
       return res.status(400).json({ message: "All fields are required" });
@@ -37,7 +89,6 @@ router.post("/add", uploadMeal.single("picture"), async (req, res) => {
     const newMeal = new Meal({
       name,
       calories,
-      picture,
       nutrition,
     });
 
@@ -48,57 +99,7 @@ router.post("/add", uploadMeal.single("picture"), async (req, res) => {
   }
 });
 
-
-router.post("/add", uploadMeal.single("picture"), async (req, res) => {
-  try {
-      const { name, calories, nutrition, userId } = req.body;
-      const picture = req.file ? req.file.path : null;
-
-      if (!name || !calories || !nutrition || !userId) { 
-          return res.status(400).json({ message: "All fields are required" });
-      }
-
-      const newMeal = new Meal({
-          name,
-          calories,
-          picture,
-          nutrition,
-          userId,
-      });
-
-      await newMeal.save();
-      res.status(201).json({ message: "Meal added successfully", meal: newMeal });
-  } catch (err) {
-      res.status(500).json({ error: err.message });
-  }
-});
-
-
-router.put("/update/:id", uploadMeal.single("picture"), async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { name, calories, nutrition } = req.body;
-    const picture = req.file ? req.file.path : undefined; 
-
-    const updateData = {};
-    if (name) updateData.name = name;
-    if (calories) updateData.calories = calories;
-    if (nutrition) updateData.nutrition = nutrition;
-    if (picture) updateData.picture = picture;
-
-    const updatedMeal = await Meal.findByIdAndUpdate(id, updateData, { new: true });
-
-    if (!updatedMeal) {
-      return res.status(404).json({ message: "Meal not found" });
-    }
-
-    res.json({ message: "Meal updated successfully", meal: updatedMeal });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-
+// Get all meals
 router.get("/all", async (req, res) => {
   try {
     const meals = await Meal.find();
@@ -108,22 +109,7 @@ router.get("/all", async (req, res) => {
   }
 });
 
-router.get('/user/:userId', async (req, res) => {
-  try {
-      const { userId } = req.params;
-
-      const meals = await Meal.find({ userId: userId }).sort({ createdAt: -1 });
-
-      if (!meals || meals.length === 0) {
-          return res.status(404).json({ message: 'No meals found for this user.' });
-      }
-
-      res.status(200).json(meals);
-  } catch (err) {
-      res.status(500).json({ error: err.message });
-  }
-});
-
+// Get a single meal
 router.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;
@@ -139,6 +125,7 @@ router.get("/:id", async (req, res) => {
   }
 });
 
+// Delete a meal
 router.delete("/delete/:id", async (req, res) => {
   try {
     const { id } = req.params;
@@ -154,27 +141,28 @@ router.delete("/delete/:id", async (req, res) => {
   }
 });
 
+// AI Recommendation
 router.get("/ai-meal-recommendation/:userId", async (req, res) => {
   try {
-      const userId = req.params.userId;
-      const today = new Date().toISOString().split("T")[0];
+    const userId = req.params.userId;
+    const today = new Date().toISOString().split("T")[0];
+    const recommendation = await UserMealRecommendation.findOne({
+      userId,
+      createdAt: { $gte: new Date(today) },
+    });
 
-      const recommendation = await UserMealRecommendation.findOne({
-          userId: userId,
-          createdAt: { $gte: new Date(today) }
-      });
+    if (!recommendation) {
+      return res.json({ message: "No AI meal recommendation found for today." });
+    }
 
-      if (!recommendation) {
-          return res.json({ message: "No AI meal recommendation found for today." });
-      }
-
-      res.json({ recommendation: recommendation.recommendationText });
+    res.json({ recommendation: recommendation.recommendationText });
   } catch (error) {
-      res.status(500).json({ error: "Error fetching AI meal recommendation." });
+    res.status(500).json({ error: "Error fetching AI meal recommendation." });
   }
 });
 
-cron.schedule("30 7 * * *", async () => {
+
+cron.schedule("30 6 * * *", async () => {
   try {
       console.log("Running AI meal & hydration recommendation job...");
 
