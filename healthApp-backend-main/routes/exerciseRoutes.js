@@ -38,7 +38,7 @@ router.post("/add", uploadExercise.fields([
   try {
     const { name, description, reps, time } = req.body;
 
-  if (!name || !description || !reps || !time || !req.files["thumbnail"] || !req.files["workoutGif"]) {
+    if (!name || !description || !reps || !time || !req.files["thumbnail"] || !req.files["workoutGif"]) {
       return res.status(400).json({ message: "All fields including images are required" });
     }
 
@@ -138,8 +138,7 @@ router.get("/:id", async (req, res) => {
 
 router.delete("/delete/:id", async (req, res) => {
   try {
-    const { id } = r
-eq.params;
+    const { id } = req.params;
     const deletedExercise = await Exercise.findByIdAndDelete(id);
 
     if (!deletedExercise) {
@@ -179,7 +178,7 @@ router.post("/complete/:id", async (req, res) => {
       if (!user) return res.status(404).json({ message: "User not found." });
   
       // ✅ Only allow regular users to fetch AI-assigned exercises
-      if (user.isAdmin  user.isTrainer) {
+      if (user.isAdmin || user.isTrainer) {
   return res.status(400).json({ message: "Admins and Trainers cannot receive AI-assigned exercises." });
 }
   
@@ -213,7 +212,8 @@ router.get("/trainer-assigned-exercises/:userId", async (req, res) => {
     }
 });
 
-// Assign exercise and send a notification
+
+  // Assign exercise and send a notification
   router.post("/ai-assign-exercise/:userId", async (req, res) => {
     try {
       const { userId } = req.params;
@@ -222,7 +222,7 @@ router.get("/trainer-assigned-exercises/:userId", async (req, res) => {
       if (!user) return res.status(404).json({ message: "User not found." });
   
       // ✅ Only allow AI to assign exercises to regular users
-     if (user.isAdmin  user.isTrainer) {
+     if (user.isAdmin || user.isTrainer) {
   return res.status(400).json({ message: "Admins and Trainers cannot receive AI-assigned exercises." });
      }  
       // Start of today
@@ -329,7 +329,8 @@ router.post("/assign-exercise", async (req, res) => {
         const trainer = await User.findById(trainerId);
         const user = await User.findById(userId);
         const exercise = await Exercise.findById(exerciseId);
-if (!trainer  !trainer.isTrainer) {
+
+        if (!trainer || !trainer.isTrainer) {
             return res.status(403).json({ error: "Trainer not authorized" });
         }
         if (!user) {
@@ -392,7 +393,7 @@ Recommend up to 2 exercises for a user with these attributes:
 - Goal: ${user.goal}
 
 Choose from this list:
-${allExercises.map((ex) => ${ex.name}: ${ex.description}).join("\n")}
+${allExercises.map((ex) => `${ex.name}: ${ex.description}`).join("\n")}
 
 Respond with a list of 1 or 2 exercise names, one per line.
 `;
@@ -457,8 +458,7 @@ router.post("/assign-workout", async (req, res) => {
       }
 
       exercise.assignedTo.push(userId);
-      exercise.assign
-edBy.push(req.user ? req.user._id : null);
+      exercise.assignedBy.push(req.user ? req.user._id : null);
       exercise.assignedByType = "trainer";
       exercise.expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
@@ -510,7 +510,7 @@ router.post("/ai-assign-workout/:userId", async (req, res) => {
           - Goal: ${user.goal}
 
           Choose from this list:
-          ${allExercises.map((ex) => ${ex.name}: ${ex.description}).join("\n")}
+          ${allExercises.map((ex) => `${ex.name}: ${ex.description}`).join("\n")}
 
           Respond with a list of 1 or 2 exercise names.
       `;
@@ -578,8 +578,7 @@ cron.schedule("0 8 * * *", async () => {
               createdAt: { $gte: new Date(today) },
           });
 
-
-if (todayWorkouts.length >= 2) continue;
+          if (todayWorkouts.length >= 2) continue;
 
           const prompt = `
               Recommend up to 2 exercises for a user with these attributes:
@@ -589,7 +588,7 @@ if (todayWorkouts.length >= 2) continue;
               - Goal: ${user.goal}
 
               Choose from this list:
-              ${allExercises.map((ex) => ${ex.name}: ${ex.description}).join("\n")}
+              ${allExercises.map((ex) => `${ex.name}: ${ex.description}`).join("\n")}
 
               Respond with a list of 1 or 2 exercise names.
           `;
