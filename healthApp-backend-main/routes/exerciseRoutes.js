@@ -170,36 +170,47 @@ router.post("/complete/:id", async (req, res) => {
   });
 
   // Route to get AI-assigned exercises for a user
-  router.get("/ai-assigned-exercises/:userId", async (req, res) => {
-    try {
-      const { userId } = req.params;
-      const user = await User.findById(userId);
-  
-      if (!user) return res.status(404).json({ message: "User not found." });
-  
-      // ✅ Only allow regular users to fetch AI-assigned exercises
-      if (user.isAdmin || user.isTrainer) {
-  return res.status(400).json({ message: "Admins and Trainers cannot receive AI-assigned exercises." });
-}
-  
-      const startOfDay = new Date();
-      startOfDay.setHours(0, 0, 0, 0);
-  
-      const assigned = await AiExercise.find({
-        userId,
-        assignedByType: "ai",
-        assignedAt: { $gte: startOfDay },
-      }).populate("exerciseId");
-  
-      // unwrap populated templates
-      const exercises = assigned.map(a => a.exerciseId);
-      res.json({ aiAssignedExercises: exercises });
-  
-    } catch (err) {
-      console.error("Error fetching AI-assigned exercises:", err);
-      res.status(500).json({ error: err.message });
+ router.get("/ai-assigned-exercises/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const user = await User.findById(userId);
+
+    if (!user) return res.status(404).json({ message: "User not found." });
+
+    if (user.isAdmin || user.isTrainer) {
+      return res
+        .status(400)
+        .json({ message: "Admins and Trainers cannot receive AI-assigned exercises." });
     }
-  });
+
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const assigned = await AiExercise.find({
+      userId,
+      assignedAt: { $gte: startOfDay },
+    }).populate("exerciseId");
+
+    const exercises = assigned.map((a) => {
+      const base = a.exerciseId?.toObject() || {};
+      return {
+        ...base,
+        _id: base._id || a._id,
+        assignedTo: a.assignedTo,
+        assignedBy: a.assignedBy,
+        assignedByType: "ai",
+        expiresAt: a.expiresAt,
+        assignedAt: a.assignedAt,
+      };
+    });
+
+    res.json(exercises); // 👈 Returns raw array
+
+  } catch (err) {
+    console.error("Error fetching AI-assigned exercises:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
   
 // Route to get trainer-assigned exercises for a user
 router.get("/trainer-assigned-exercises/:userId", async (req, res) => {
