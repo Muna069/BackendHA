@@ -80,9 +80,9 @@ router.get("/meal-nutrition", async (req, res) => {
 // Add meal
 router.post("/add", async (req, res) => {
   try {
-    const { name, calories, nutrition } = req.body;
+    const { name, calories, nutrition, userId } = req.body;
 
-    if (!name || !calories || !nutrition) {
+    if (!name || !calories || !nutrition || !userId) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
@@ -90,6 +90,7 @@ router.post("/add", async (req, res) => {
       name,
       calories,
       nutrition,
+      userId, // ✅ Add this line
     });
 
     await newMeal.save();
