@@ -650,21 +650,5 @@ router.get("/ai-assigned-exercises/:userId", async (req, res) => {
   }
 });
 
-router.get("/trainer-assigned-exercises/:userId", async (req, res) => {
-  try {
-      const userId = req.params.userId;
-      const today = new Date().toISOString().split("T")[0];
-
-      const exercises = await Exercise.find({
-          assignedTo: userId,
-          assignedByType: "trainer",
-          createdAt: { $gte: new Date(today) },
-      });
-
-      res.json(exercises);
-  } catch (error) {
-      res.status(500).json({ error: "Error fetching trainer-assigned exercises" });
-  }
-});
 
 module.exports = router;
