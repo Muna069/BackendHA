@@ -185,7 +185,7 @@ router.post("/complete/:id", async (req, res) => {
       const startOfDay = new Date();
       startOfDay.setHours(0, 0, 0, 0);
   
-      const assigned = await AiExercise.find({
+      const assigned = await Exercise.find({
         userId,
         assignedByType: "ai",
         assignedAt: { $gte: startOfDay },
