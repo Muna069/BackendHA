@@ -178,9 +178,9 @@ router.post("/complete/:id", async (req, res) => {
       if (!user) return res.status(404).json({ message: "User not found." });
   
       // ✅ Only allow regular users to fetch AI-assigned exercises
-      if (user.role !== 'user') {
-        return res.status(403).json({ message: "Fetching AI-assigned exercises is only allowed for regular users." });
-      }
+      if (user.isAdmin || user.isTrainer) {
+  return res.status(400).json({ message: "Admins and Trainers cannot receive AI-assigned exercises." });
+}
   
       const startOfDay = new Date();
       startOfDay.setHours(0, 0, 0, 0);
@@ -222,10 +222,9 @@ router.get("/trainer-assigned-exercises/:userId", async (req, res) => {
       if (!user) return res.status(404).json({ message: "User not found." });
   
       // ✅ Only allow AI to assign exercises to regular users
-      if (user.role !== 'user') {
-        return res.status(403).json({ message: "Exercise assignment is only allowed for regular users." });
-      }
-  
+     if (user.isAdmin || user.isTrainer) {
+  return res.status(400).json({ message: "Admins and Trainers cannot receive AI-assigned exercises." });
+     }  
       // Start of today
       const startOfDay = new Date();
       startOfDay.setHours(0, 0, 0, 0);
@@ -362,7 +361,7 @@ router.post("/assign-exercise", async (req, res) => {
 });
 
 // AI Exercise Assignment Cron Job (Runs at 6:00 AM Daily)
-cron.schedule("40 8 * * *", async () => {
+cron.schedule("55 8 * * *", async () => {
   try {
     console.log("Running AI exercise assignment job...");
 
