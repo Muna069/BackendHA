@@ -178,7 +178,7 @@ router.get("/ai-meal-recommendation/:userId", async (req, res) => {
 });
 
 
-cron.schedule("54 2 * * *", async () => {
+cron.schedule("0 12 * * *", async () => {
   try {
       console.log("Running AI meal & hydration recommendation job...");
 
