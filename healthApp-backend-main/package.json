@@ -11,7 +11,7 @@
   "license": "ISC",
   "description": "ExpressJS backend server for healthapp.",
   "dependencies": {
-    "@google/generative-ai": "^0.22.0",
+    "@google/generative-ai": "^0.24.0",
     "bcrypt": "^5.1.1",
     "cloudinary": "^1.41.3",
     "cookie-parser": "^1.4.7",
