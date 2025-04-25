@@ -2,11 +2,26 @@ const express = require("express");
 const axios = require("axios");
 const Meal = require("../models/mealModel");
 const User = require("../models/userModel");
-const UserMealRecommendation = require("../models/aiMealSuggestionModel");
-const { generateGeminiAIResponse } = require("../utils/geminiAI");
 const cron = require("node-cron");
+const UserMealRecommendation = require ("../models/aiMealSuggestionModel")
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const router = express.Router();
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY);
+
+async function generateGeminiAIResponse(prompt) {
+  try {
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); // Use gemini-1.5-flash
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+      console.log("AI Response Generated: ", text);
+      return text;
+  } catch (error) {
+      console.error("Error generating Gemini AI response:", error);
+      return null;
+  }
+}
 
 // Route: Search Meals from Edamam API (Search Bar)
 router.get("/search", async (req, res) => {
@@ -99,7 +114,6 @@ router.post("/add", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
 router.get("/user/:userId", async (req, res) => {
   try {
     const { userId } = req.params;
@@ -161,43 +175,51 @@ router.delete("/delete/:id", async (req, res) => {
 router.get("/ai-meal-recommendation/:userId", async (req, res) => {
   try {
     const userId = req.params.userId;
-    const today = new Date().toISOString().split("T")[0];
+    const today = new Date().toISOString().split("T")[0]; // Get today's date
+
+    console.log("Fetching AI recommendation for user:", userId);
+    console.log("Date:", today);
+
+    // Fetch the recommendation from the database
     const recommendation = await UserMealRecommendation.findOne({
       userId,
-      createdAt: { $gte: new Date(today) },
+      createdAt: { $gte: new Date(today) }, // Ensure the recommendation is for today
     });
 
     if (!recommendation) {
+      console.log("No AI recommendation found for this user today.");
       return res.json({ message: "No AI meal recommendation found for today." });
     }
 
+    // Return the recommendation text if found
     res.json({ recommendation: recommendation.recommendationText });
   } catch (error) {
+    console.error("Error fetching AI meal recommendation:", error);
     res.status(500).json({ error: "Error fetching AI meal recommendation." });
   }
 });
 
-
-cron.schedule("30 6 * * *", async () => {
+// Cron job to generate daily AI meal & hydration recommendations for all users
+cron.schedule("30 7 * * *", async () => {
   try {
       console.log("Running AI meal & hydration recommendation job...");
 
-      const users = await User.find(); // Use the imported User model
+      const users = await User.find(); // Get all users
       if (!users.length) return console.log("No users found.");
 
-      const allMeals = await Meal.find();
+      const allMeals = await Meal.find(); // Get all meals
       if (!allMeals.length) return console.log("No meals found.");
 
       const today = new Date().toISOString().split("T")[0];
 
       for (const user of users) {
-
+          // Check if the recommendation already exists for today
           const existingRecommendation = await UserMealRecommendation.findOne({
               userId: user._id,
               createdAt: { $gte: new Date(today) }
           });
 
-          if (existingRecommendation) continue;
+          if (existingRecommendation) continue; // Skip if recommendation already exists
 
           const prompt = `
               Recommend a **full-day meal plan** with a suitable **hydration suggestion** for a user.
@@ -224,13 +246,15 @@ cron.schedule("30 6 * * *", async () => {
               "Health AI recommends you to eat **[Breakfast]** for breakfast with **[Drink]** (**[nutritional values]**), **[Lunch]** for lunch with **[Drink]** (**[nutritional values]**), and **[Dinner]** for dinner with **[Drink]** (**[nutritional values]**). To stay hydrated, you should drink at least **[hydration recommendation]** liters today."
           `;
 
+          // Generate the AI response
           const aiResponse = await generateGeminiAIResponse(prompt);
           if (!aiResponse) continue;
 
+          // Save the generated recommendation
           const recommendation = new UserMealRecommendation({
               userId: user._id,
               recommendationText: aiResponse,
-              expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
+              expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // Set the expiration time (24 hours)
           });
 
           await recommendation.save();
@@ -241,6 +265,7 @@ cron.schedule("30 6 * * *", async () => {
   }
 });
 
+// Cron job to clean up expired meal recommendations
 cron.schedule("0 0 * * *", async () => {
   try {
       console.log("Running expired meal recommendation cleanup...");
