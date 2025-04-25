@@ -19,45 +19,39 @@ const generateRefreshToken = (id) =>
 
 router.post('/register', async (req, res) => {
   const startTime = Date.now();
-  const { username, email, password } = req.body;
+  const { username, password } = req.body;
 
-  if (!username || !email || !password) {
-    return res.status(400).json({ message: 'Username, email, and password are required.' });
-  }
-
-  // ✅ Email format validation
-  if (!validator.isEmail(email)) {
-    return res.status(400).json({ message: 'Invalid email format.' });
+  if (!username || !password) {
+    return res.status(400).json({ message: "Username and password are required." });
   }
 
   // ✅ Password strength validation
   const passwordIsValid = password.length >= 6 && /[a-zA-Z]/.test(password) && /\d/.test(password);
   if (!passwordIsValid) {
     return res.status(400).json({
-      message: 'Password must be at least 6 characters long and include both letters and numbers.',
+      message: "Password must be at least 6 characters long and include both letters and numbers.",
     });
   }
 
-  // ✅ Check for existing user
   const userExists = await User.findOne({ username });
   if (userExists) {
-    return res.status(400).json({ message: 'User already exists' });
+    return res.status(400).json({ message: "User already exists" });
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
-  const newUser = new User({ username, email, password: hashedPassword });
+  const newUser = new User({ username, password: hashedPassword });
 
   try {
     await newUser.save();
     const endTime = Date.now();
     console.log(`User registration took ${endTime - startTime} ms`);
     res.status(201).json({
-      message: 'User registered successfully',
+      message: "User registered successfully",
       user: { _id: newUser._id },
     });
   } catch (error) {
-    console.error('Error registering user:', error);
-    res.status(400).json({ message: 'Error registering user' });
+    console.error("Error registering user:", error);
+    res.status(400).json({ message: "Error registering user" });
   }
 });
 
