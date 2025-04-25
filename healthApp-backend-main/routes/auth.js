@@ -24,16 +24,11 @@ router.post('/register', async (req, res) => {
     return res.status(400).json({ message: 'Username, email, and password are required.' });
   }
 
-  // Option 1: Basic Regex (uncomment to use this)
-  // const emailRegex = /\S+@\S+\.\S+/;
-  // if (!emailRegex.test(email)) {
-  //   return res.status(400).json({ message: 'Invalid email format' });
-  // }
-
-  // Option 2: Using validator.js
-  if (!validator.isEmail(email)) {
-    return res.status(400).json({ message: 'Invalid email format' });
-  }
+  
+   const emailRegex = /\S+@\S+\.\S+/;
+   if (!emailRegex.test(email)) {
+     return res.status(400).json({ message: 'Invalid email format' });
+  
 
   const userExists = await User.findOne({ username });
   if (userExists) {
