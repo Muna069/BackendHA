@@ -39,11 +39,25 @@ router.get("/:userId", async (req, res) => {
 // **View Registered Device**
 router.get("/registered/:userId", async (req, res) => {
   try {
-    const device = await MockDevice.findOne({ userId: req.params.userId });
+    const user = await User.findOne({ 
+      _id: req.params.userId, 
+      isUser: true, 
+      isAdmin: false, 
+      isTrainer: false 
+    });
 
-    if (!device) return res.status(404).json({ message: "No registered device found" });
+    if (!user) {
+      return res.status(404).json({ message: "User not found or not a valid regular user" });
+    }
+
+    const device = await MockDevice.findOne({ userId: user._id });
+
+    if (!device) {
+      return res.status(404).json({ message: "No registered device found" });
+    }
 
     res.json(device);
+
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
