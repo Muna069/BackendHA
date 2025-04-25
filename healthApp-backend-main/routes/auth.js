@@ -16,7 +16,6 @@ const generateRefreshToken = (id) =>
   jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '14d' });
 
 // Register
-const validator = require('validator');
 
 router.post('/register', async (req, res) => {
   const startTime = Date.now();
