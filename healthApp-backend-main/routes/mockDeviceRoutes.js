@@ -109,7 +109,7 @@ cron.schedule("0 0 * * *", async () => {
           // Calculate average heart rate (assuming you have HeartRateRecord)
           // ... (your heart rate calculation logic) ...
 
-          await DailyData.create({
+          await DailyDeviceData.create({
               userId: device.userId,
               date: yesterdayString, // Save as string
               sleepMinutes: device.sleepMinutes,
@@ -157,7 +157,7 @@ router.get("/history/yesterday/:userId", async (req, res) => {
       yesterday.setDate(today.getDate() - 1);
       const yesterdayString = yesterday.toISOString().split("T")[0];
 
-      const yesterdayData = await DailyData.findOne({
+      const yesterdayData = await DailyDeviceData.findOne({
           userId: userId, // Correctly use userId
           date: yesterdayString,
       });
