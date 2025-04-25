@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-require-imports */
+}/* eslint-disable @typescript-eslint/no-require-imports */
 const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
@@ -28,7 +28,7 @@ router.post('/register', async (req, res) => {
    const emailRegex = /\S+@\S+\.\S+/;
    if (!emailRegex.test(email)) {
      return res.status(400).json({ message: 'Invalid email format' });
-  
+   }
 
   const userExists = await User.findOne({ username });
   if (userExists) {
