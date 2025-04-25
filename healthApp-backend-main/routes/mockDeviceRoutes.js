@@ -39,32 +39,15 @@ router.get("/:userId", async (req, res) => {
 // **View Registered Device**
 router.get("/registered/:userId", async (req, res) => {
   try {
-    const user = await User.findOne({ _id: req.params.userId });
+    const device = await MockDevice.findOne({ userId: req.params.userId });
 
-    // If the user is not found at all, return 404
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    // If the user is an admin or trainer, silently return an empty object or null
-    if (user.isAdmin || user.isTrainer) {
-      return res.json(null); // or res.status(204).send(); for no content
-    }
-
-    // Only proceed for regular users
-    const device = await MockDevice.findOne({ userId: user._id });
-
-    if (!device) {
-      return res.status(404).json({ message: "No registered device found" });
-    }
+    if (!device) return res.status(404).json({ message: "No registered device found" });
 
     res.json(device);
-
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
-
 // **Delete Device**
 router.delete("/:userId", async (req, res) => {
   try {
