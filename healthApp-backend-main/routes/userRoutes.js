@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-require-imports */
 const express = require('express');
 const bcrypt = require('bcrypt');
 const User = require('../models/userModel');
@@ -152,11 +154,22 @@ router.put('/update-profile', uploadAvatar.single('avatar'), async (req, res) =>
             user.username = username;
         }
 
-        if ( email && email !== user.email ){
-            const emailExists = await User.findOne({ email, _id: { $ne: _id }});
-            if (emailExists) {
-                return res.status(400).json({ message: "Email already in use."});
+        const validator = require('validator');
+
+        // Inside your async route handler
+        if (email && email !== user.email) {
+            // First, validate email format
+            if (!validator.isEmail(email)) {
+                return res.status(400).json({ message: "Invalid email format." });
             }
+
+            // Then check if email already exists for another user
+            const emailExists = await User.findOne({ email, _id: { $ne: _id } });
+            if (emailExists) {
+                return res.status(400).json({ message: "Email already in use." });
+            }
+
+            // All good, update the email
             user.email = email;
         }
 
