@@ -16,6 +16,8 @@ const generateRefreshToken = (id) =>
   jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '14d' });
 
 // Register
+const validator = require('validator');
+
 router.post('/register', async (req, res) => {
   const startTime = Date.now();
   const { username, email, password } = req.body;
@@ -24,12 +26,20 @@ router.post('/register', async (req, res) => {
     return res.status(400).json({ message: 'Username, email, and password are required.' });
   }
 
-  
-   const emailRegex = /\S+@\S+\.\S+/;
-   if (!emailRegex.test(email)) {
-     return res.status(400).json({ message: 'Invalid email format' });
-   }
+  // ✅ Email format validation
+  if (!validator.isEmail(email)) {
+    return res.status(400).json({ message: 'Invalid email format.' });
+  }
 
+  // ✅ Password strength validation
+  const passwordIsValid = password.length >= 6 && /[a-zA-Z]/.test(password) && /\d/.test(password);
+  if (!passwordIsValid) {
+    return res.status(400).json({
+      message: 'Password must be at least 6 characters long and include both letters and numbers.',
+    });
+  }
+
+  // ✅ Check for existing user
   const userExists = await User.findOne({ username });
   if (userExists) {
     return res.status(400).json({ message: 'User already exists' });
