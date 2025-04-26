@@ -1,6 +1,6 @@
 const express = require("express");
 const MockDevice = require("../models/mockDeviceModel");
-const DailyDeviceData = require("../models/dailyDeviceDataModel");
+const DailyData = require("../models/dailyDeviceDataModel");
 const User = require("../models/userModel"); // <-- Added for role checking
 const cron = require("node-cron");
 
@@ -105,7 +105,7 @@ cron.schedule("* * * * *", async () => {
   }
 });
 
-cron.schedule("32 4 * * *", async () => {
+cron.schedule("0 0 * * *", async () => {
   try {
     const devices = await MockDevice.find();
 
@@ -115,7 +115,7 @@ cron.schedule("32 4 * * *", async () => {
 
       const averageHeartRate = device.heartRate; // Or your average calculation logic
 
-      const dailyData = new DailyDeviceData({
+      const dailyData = new DailyData({
         userId: device.userId,
         date: today, // Save as Date object (not a timestamp number)
         sleepMinutes: device.sleepMinutes,
@@ -145,7 +145,7 @@ cron.schedule("32 4 * * *", async () => {
 // GET full history sorted by date
 router.get("/history/:userId", async (req, res) => {
   try {
-    const history = await DailyDeviceData.find({ userId: req.params.userId }).sort({ date: -1 });
+    const history = await DailyData.find({ userId: req.params.userId }).sort({ date: -1 });
     res.json(history);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -165,7 +165,7 @@ router.get("/history/yesterday/:userId", async (req, res) => {
     const endOfYesterday = new Date(startOfYesterday);
     endOfYesterday.setHours(23, 59, 59, 999);
 
-    const yesterdayData = await DailyDeviceData.find({
+    const yesterdayData = await DailyData.find({
       userId: userId,
       date: {
         $gte: startOfYesterday,
