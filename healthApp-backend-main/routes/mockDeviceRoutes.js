@@ -1,6 +1,5 @@
 const express = require("express");
 const MockDevice = require("../models/mockDeviceModel");
-const DailyDeviceData = require("../models/dailyDeviceDataModel");
 const cron = require("node-cron");
 
 const router = express.Router();
