@@ -1,7 +1,6 @@
 const express = require("express");
 const MockDevice = require("../models/mockDeviceModel");
-const DailyInsight = require ("../models/dailyInsightModel");
-const DailyDeviceData = require("../models/dailyDeviceDataModel");
+const DailyData = require("../models/dailyDeviceDataModel");
 const User = require("../models/userModel"); // <-- Added for role checking
 const cron = require("node-cron");
 
@@ -159,22 +158,45 @@ cron.schedule("0 0 * * *", async () => {
 // Get Daily Device History for User
 router.get("/history/:userId", async (req, res) => {
   try {
-    const history = await DailyInsight.find({ userId: req.params.userId }).sort({ date: -1 }); // Sort by date descending
+    const history = await DailyData.find({ userId: req.params.userId }).sort({ date: -1 }); 
     res.json(history);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-//Get Daily Device history for a specific date.
 router.get("/history/:userId/:date", async(req, res)=>{
   try{
     const date = new Date(req.params.date);
-    const history = await DailyInsight.find({userId: req.params.userId, date: date});
+    const history = await DailyData.find({userId: req.params.userId, date: date});
     res.json(history);
   }catch(err){
     res.status(500).json({error: err.message});
   }
 })
+
+router.get("/history/yesterday/:userId", async (req, res) => {
+  try {
+      const userId = req.params.userId; // Correctly get userId from params
+      const today = new Date();
+      const yesterday = new Date(today);
+      yesterday.setDate(today.getDate() - 1);
+      const yesterdayString = yesterday.toISOString().split("T")[0];
+
+      const yesterdayData = await DailyData.findOne({
+          userId: userId, // Correctly use userId
+          date: yesterdayString,
+      });
+
+      if (!yesterdayData) {
+          return res.status(404).json({ message: "No data found for yesterday." });
+      }
+
+      res.json(yesterdayData);
+  } catch (err) {
+      console.error("Error fetching yesterday's data:", err);
+      res.status(500).json({ error: err.message });
+  }
+});
 
 module.exports = router;
