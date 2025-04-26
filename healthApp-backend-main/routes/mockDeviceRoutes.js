@@ -173,30 +173,7 @@ router.get("/history/:userId/:date", async(req, res)=>{
   }catch(err){
     res.status(500).json({error: err.message});
   }
-})
-
-router.get("/history/yesterday/:userId", async (req, res) => {
-  try {
-      const userId = req.params.userId; // Correctly get userId from params
-      const today = new Date();
-      const yesterday = new Date(today);
-      yesterday.setDate(today.getDate() - 1);
-      const yesterdayString = yesterday.toISOString().split("T")[0];
-
-      const yesterdayData = await DailyData.findOne({
-          userId: userId, // Correctly use userId
-          date: yesterdayString,
-      });
-
-      if (!yesterdayData) {
-          return res.status(404).json({ message: "No data found for yesterday." });
-      }
-
-      res.json(yesterdayData);
-  } catch (err) {
-      console.error("Error fetching yesterday's data:", err);
-      res.status(500).json({ error: err.message });
-  }
 });
+
 
 module.exports = router;
