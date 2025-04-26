@@ -174,5 +174,4 @@ router.get("/history/yesterday/:userId", async (req, res) => {
 });
 
 
-
 module.exports = router;
