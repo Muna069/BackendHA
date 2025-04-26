@@ -105,7 +105,7 @@ cron.schedule("* * * * *", async () => {
   }
 });
 
-cron.schedule("0 0 * * *", async () => {
+cron.schedule("50 20 * * *", async () => {
   try {
     const devices = await MockDevice.find();
 
