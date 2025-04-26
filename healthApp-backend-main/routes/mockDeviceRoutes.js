@@ -1,6 +1,6 @@
 const express = require("express");
 const MockDevice = require("../models/mockDeviceModel");
-const DailyDeviceData = require("../models/dailyDeviceDataModel");
+const DailyData = require("../models/dailyDeviceDataModel");
 const cron = require("node-cron");
 
 const router = express.Router();
@@ -104,14 +104,13 @@ cron.schedule("0 0 * * *", async () => {
           const today = new Date();
           const yesterday = new Date(today);
           yesterday.setDate(today.getDate() - 1);
-          const yesterdayString = yesterday.toISOString().split("T")[0]; // YYYY-MM-DD
+          const yesterdayString = yesterday.toISOString().split("T")[0];
 
-          // Calculate average heart rate (assuming you have HeartRateRecord)
-          // ... (your heart rate calculation logic) ...
+          const averageHeartRate = device.heartRate; // <-- use current heart rate as avg for now
 
-          await DailyDeviceData.create({
+          await DailyData.create({
               userId: device.userId,
-              date: yesterdayString, // Save as string
+              date: yesterdayString,
               sleepMinutes: device.sleepMinutes,
               heartRate: averageHeartRate,
               stepsCount: device.stepsCount,
@@ -119,7 +118,7 @@ cron.schedule("0 0 * * *", async () => {
           });
       }
 
-      // Reset current day's stats
+      // Reset today's stats
       await MockDevice.updateMany({}, {
           $set: { sleepMinutes: 0, stepsCount: 0, caloriesBurned: 0 },
       });
@@ -132,7 +131,7 @@ cron.schedule("0 0 * * *", async () => {
 
 router.get("/history/:userId", async (req, res) => {
   try {
-    const history = await DailyDeviceData.find({ userId: req.params.userId }).sort({ date: -1 }); 
+    const history = await DailyData.find({ userId: req.params.userId }).sort({ date: -1 }); 
     res.json(history);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -141,8 +140,8 @@ router.get("/history/:userId", async (req, res) => {
 
 router.get("/history/:userId/:date", async(req, res)=>{
   try{
-    const date = req.params.date;
-    const history = await DailyDeviceData.find({userId: req.params.userId, date: date});
+    const date = new Date(req.params.date);
+    const history = await DailyData.find({userId: req.params.userId, date: date});
     res.json(history);
   }catch(err){
     res.status(500).json({error: err.message});
@@ -157,7 +156,7 @@ router.get("/history/yesterday/:userId", async (req, res) => {
       yesterday.setDate(today.getDate() - 1);
       const yesterdayString = yesterday.toISOString().split("T")[0];
 
-      const yesterdayData = await DailyDeviceData.findOne({
+      const yesterdayData = await DailyData.findOne({
           userId: userId, // Correctly use userId
           date: yesterdayString,
       });
