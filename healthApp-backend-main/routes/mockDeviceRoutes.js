@@ -78,6 +78,7 @@ router.delete("/:userId", async (req, res) => {
 });
 
 // **Simulate Real-Time Updates Every Minute**
+// **Simulate Real-Time Updates Every Minute**
 cron.schedule("* * * * *", async () => {
   try {
     const devices = await MockDevice.find();
@@ -86,13 +87,19 @@ cron.schedule("* * * * *", async () => {
       const now = new Date();
       const hour = now.getHours();
 
+      // **Heart Rate Simulation** (60 - 120 BPM)
       device.heartRate = Math.floor(Math.random() * (120 - 60 + 1)) + 60;
+
+      // **Steps Simulation** (0 - 5 steps per minute)
       const randomSteps = Math.floor(Math.random() * 5);
       device.stepsCount += randomSteps;
+
+      // **Calories Burned Simulation** (0.04 kcal per step)
       device.caloriesBurned += randomSteps * 0.04;
 
+      // **Sleep Simulation (Only between 10 PM - 6 AM)**
       if (hour >= 22 || hour < 6) {
-        device.sleepMinutes += Math.floor(Math.random() * 3);
+        device.sleepMinutes += Math.floor(Math.random() * 3); // Random 0-2 min per update
       }
 
       device.lastUpdated = now;
@@ -110,78 +117,63 @@ cron.schedule("0 0 * * *", async () => {
     const devices = await MockDevice.find();
 
     for (const device of devices) {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0); // Set time to midnight
+      // 1. Fetch daily heart rate records
+      const previousDay = new Date(new Date().setDate(new Date().getDate() - 1));
+      const startOfDay = new Date(previousDay.getFullYear(), previousDay.getMonth(), previousDay.getDate(), 0, 0, 0);
+      const endOfDay = new Date(previousDay.getFullYear(), previousDay.getMonth(), previousDay.getDate(), 23, 59, 59);
 
-      const averageHeartRate = device.heartRate; // Or your average calculation logic
-
-      const dailyData = new DailyData({
+      const heartRateRecords = await HeartRateRecord.find({
         userId: device.userId,
-        date: today, // Save as Date object (not a timestamp number)
+        timestamp: { $gte: startOfDay, $lte: endOfDay },
+      });
+
+      // 2. Calculate average heart rate
+      let averageHeartRate = 0;
+      if (heartRateRecords.length > 0) {
+        const totalHeartRate = heartRateRecords.reduce((sum, record) => sum + record.heartRate, 0);
+        averageHeartRate = totalHeartRate / heartRateRecords.length;
+      }
+
+      // 3. Save daily data to history
+      await DailyData.create({
+        userId: device.userId,
+        date: previousDay,
         sleepMinutes: device.sleepMinutes,
-        heartRate: averageHeartRate,
+        heartRate: averageHeartRate, // Save the calculated average
         stepsCount: device.stepsCount,
         caloriesBurned: device.caloriesBurned,
       });
-
-      await dailyData.save();
     }
 
-    // Reset MockDevice data
+    // Reset current day's stats
     await MockDevice.updateMany({}, {
-      $set: {
-        sleepMinutes: 0,
-        stepsCount: 0,
-        caloriesBurned: 0,
-      },
+      $set: { sleepMinutes: 0, stepsCount: 0, caloriesBurned: 0 },
     });
 
-    console.log("Daily data saved and MockDevice data reset.");
+    console.log("Daily stats saved and reset at midnight.");
   } catch (err) {
-    console.error("Error saving daily data:", err);
+    console.error("Error handling daily stats:", err);
   }
 });
 
-// GET full history sorted by date
+// Get Daily Device History for User
 router.get("/history/:userId", async (req, res) => {
   try {
-    const history = await DailyData.find({ userId: req.params.userId }).sort({ date: -1 });
+    const history = await DailyData.find({ userId: req.params.userId }).sort({ date: -1 }); // Sort by date descending
     res.json(history);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// GET yesterday's history for a user (safer date range query)
-router.get("/history/yesterday/:userId", async (req, res) => {
-  try {
-    const userId = req.params.userId;
-
-    const today = new Date();
-    const startOfYesterday = new Date(today);
-    startOfYesterday.setDate(today.getDate() - 1);
-    startOfYesterday.setHours(0, 0, 0, 0);
-
-    const endOfYesterday = new Date(startOfYesterday);
-    endOfYesterday.setHours(23, 59, 59, 999);
-
-    const yesterdayData = await DailyData.findOne({
-      userId: userId,
-      date: {
-        $gte: startOfYesterday,
-        $lte: endOfYesterday,
-      },
-    });
-
-    if (!yesterdayData) {
-      return res.status(404).json({ message: "No data found for yesterday." });
-    }
-
-    res.json(yesterdayData);
-  } catch (err) {
-    console.error("Error fetching yesterday's data:", err);
-    res.status(500).json({ error: err.message });
+//Get Daily Device history for a specific date.
+router.get("/history/:userId/:date", async(req, res)=>{
+  try{
+    const date = new Date(req.params.date);
+    const history = await DailyData.find({userId: req.params.userId, date: date});
+    res.json(history);
+  }catch(err){
+    res.status(500).json({error: err.message});
   }
-});
-
+})
 module.exports = router;
