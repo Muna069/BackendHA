@@ -131,27 +131,9 @@ cron.schedule("0 0 * * *", async () => {
       // Reset current day's stats
       await MockDevice.updateMany({}, {
           $set: { sleepMinutes: 0, stepsCount: 0, caloriesBurned: 0 },
-
-
-
-
-
-
-
-
-
-
-
-
-
       });
 
-
       console.log("Daily stats saved and reset at midnight.");
-
-
-
-
   } catch (err) {
       console.error("Error handling daily stats:", err);
   }
