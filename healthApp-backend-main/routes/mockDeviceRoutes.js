@@ -1,5 +1,6 @@
 const express = require("express");
 const MockDevice = require("../models/mockDeviceModel");
+const DailyInsight = require ("../models/dailyInsightModel");
 const DailyDeviceData = require("../models/dailyDeviceDataModel");
 const User = require("../models/userModel"); // <-- Added for role checking
 const cron = require("node-cron");
@@ -158,7 +159,7 @@ cron.schedule("0 0 * * *", async () => {
 // Get Daily Device History for User
 router.get("/history/:userId", async (req, res) => {
   try {
-    const history = await DailyDeviceData.find({ userId: req.params.userId }).sort({ date: -1 }); // Sort by date descending
+    const history = await DailyInsight.find({ userId: req.params.userId }).sort({ date: -1 }); // Sort by date descending
     res.json(history);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -169,7 +170,7 @@ router.get("/history/:userId", async (req, res) => {
 router.get("/history/:userId/:date", async(req, res)=>{
   try{
     const date = new Date(req.params.date);
-    const history = await DailyDeviceData.find({userId: req.params.userId, date: date});
+    const history = await DailyInsight.find({userId: req.params.userId, date: date});
     res.json(history);
   }catch(err){
     res.status(500).json({error: err.message});
