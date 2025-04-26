@@ -141,7 +141,7 @@ router.get("/history/:userId", async (req, res) => {
 
 router.get("/history/:userId/:date", async(req, res)=>{
   try{
-    const date = new Date(req.params.date);
+    const date = req.params.date;
     const history = await DailyDeviceData.find({userId: req.params.userId, date: date});
     res.json(history);
   }catch(err){
