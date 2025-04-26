@@ -105,7 +105,7 @@ cron.schedule("* * * * *", async () => {
   }
 });
 
-cron.schedule("50 20 * * *", async () => {
+cron.schedule("0 0 * * *", async () => {
   try {
     const devices = await MockDevice.find();
 
@@ -165,7 +165,7 @@ router.get("/history/yesterday/:userId", async (req, res) => {
     const endOfYesterday = new Date(startOfYesterday);
     endOfYesterday.setHours(23, 59, 59, 999);
 
-    const yesterdayData = await DailyData.find({
+    const yesterdayData = await DailyData.findOne({
       userId: userId,
       date: {
         $gte: startOfYesterday,
