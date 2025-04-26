@@ -107,78 +107,98 @@ cron.schedule("* * * * *", async () => {
 
 cron.schedule("0 0 * * *", async () => {
   try {
-    const devices = await MockDevice.find();
+      const devices = await MockDevice.find();
 
-    for (const device of devices) {
-      const today = new Date();
-      const yesterday = new Date(today);
-      yesterday.setDate(today.getDate() - 1);
-      const yesterdayString = yesterday.toISOString().split("T")[0];
+      for (const device of devices) {
+          const today = new Date();
+          const yesterday = new Date(today);
+          yesterday.setDate(today.getDate() - 1);
+          const yesterdayString = yesterday.toISOString().split("T")[0]; // YYYY-MM-DD
 
-      // Placeholder averageHeartRate logic
-      const averageHeartRate = device.heartRate; // Adjust if you calculate differently
+          // Calculate average heart rate (assuming you have HeartRateRecord)
+          // ... (your heart rate calculation logic) ...
 
-      await DailyDeviceData.create({
-        userId: device.userId,
-        date: yesterdayString,
-        sleepMinutes: device.sleepMinutes,
-        heartRate: averageHeartRate,
-        stepsCount: device.stepsCount,
-        caloriesBurned: device.caloriesBurned,
+          await DailyDeviceData.create({
+              userId: device.userId,
+              date: yesterdayString, // Save as string
+              sleepMinutes: device.sleepMinutes,
+              heartRate: averageHeartRate,
+              stepsCount: device.stepsCount,
+              caloriesBurned: device.caloriesBurned,
+          });
+      }
+
+      // Reset current day's stats
+      await MockDevice.updateMany({}, {
+          $set: { sleepMinutes: 0, stepsCount: 0, caloriesBurned: 0 },
+
+
+
+
+
+
+
+
+
+
+
+
+
       });
-    }
 
-    await MockDevice.updateMany({}, {
-      $set: { sleepMinutes: 0, stepsCount: 0, caloriesBurned: 0 },
-    });
 
-    console.log("Daily stats saved and reset at midnight.");
+      console.log("Daily stats saved and reset at midnight.");
+
+
+
+
   } catch (err) {
-    console.error("Error handling daily stats:", err);
+      console.error("Error handling daily stats:", err);
   }
 });
 
 router.get("/history/:userId", async (req, res) => {
   try {
-    const history = await DailyDeviceData.find({ userId: req.params.userId }).sort({ date: -1 });
+    const history = await DailyDeviceData.find({ userId: req.params.userId }).sort({ date: -1 }); 
     res.json(history);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-router.get("/history/:userId/:date", async (req, res) => {
-  try {
+router.get("/history/:userId/:date", async(req, res)=>{
+  try{
     const date = new Date(req.params.date);
-    const history = await DailyDeviceData.find({ userId: req.params.userId, date: date });
+    const history = await DailyDeviceData.find({userId: req.params.userId, date: date});
     res.json(history);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+  }catch(err){
+    res.status(500).json({error: err.message});
   }
-});
+})
 
 router.get("/history/yesterday/:userId", async (req, res) => {
   try {
-    const userId = req.params.userId;
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(today.getDate() - 1);
-    const yesterdayString = yesterday.toISOString().split("T")[0];
+      const userId = req.params.userId; // Correctly get userId from params
+      const today = new Date();
+      const yesterday = new Date(today);
+      yesterday.setDate(today.getDate() - 1);
+      const yesterdayString = yesterday.toISOString().split("T")[0];
 
-    const yesterdayData = await DailyDeviceData.findOne({
-      userId: userId,
-      date: yesterdayString,
-    });
+      const yesterdayData = await DailyDeviceData.findOne({
+          userId: userId, // Correctly use userId
+          date: yesterdayString,
+      });
 
-    if (!yesterdayData) {
-      return res.status(404).json({ message: "No data found for yesterday." });
-    }
+      if (!yesterdayData) {
+          return res.status(404).json({ message: "No data found for yesterday." });
+      }
 
-    res.json(yesterdayData);
+      res.json(yesterdayData);
   } catch (err) {
-    console.error("Error fetching yesterday's data:", err);
-    res.status(500).json({ error: err.message });
+      console.error("Error fetching yesterday's data:", err);
+      res.status(500).json({ error: err.message });
   }
 });
+
 
 module.exports = router;
