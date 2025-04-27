@@ -8,5 +8,4 @@ const DailyDeviceDataSchema = new mongoose.Schema({
   stepsCount: { type: Number, required: true },
   caloriesBurned: { type: Number, required: true },
 });
-
 module.exports = mongoose.model("DailyDeviceData", DailyDeviceDataSchema);
