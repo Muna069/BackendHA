@@ -1,9 +1,12 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 const express = require('express');
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const mongoose = require('mongoose');
 const connectDB = require('./config/db');
 const cookieParser = require('cookie-parser');
 const cors = require('cors')
 const path = require('path');
+
 
 require('dotenv').config();
 connectDB();
@@ -19,6 +22,7 @@ const exerciseRoutes = require('./routes/exerciseRoutes');
 const mealRoutes = require('./routes/mealRoutes');
 const mockDeviceRoutes = require('./routes/mockDeviceRoutes')
 const notificationRoutes = require('./routes/notificationRoutes');
+const hydrationRoutes = require('./routes/hydrationRoutes');
 
 app.use(express.json());
 app.use(cookieParser());
@@ -42,6 +46,7 @@ app.use('/api/exercise', exerciseRoutes);
 app.use('/api/meal', mealRoutes);
 app.use('/api/device', mockDeviceRoutes);
 app.use('/api/notification', notificationRoutes);
+app.use('/api/hydration', hydrationRoutes);
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -50,7 +55,7 @@ app.get('/', (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
 
 module.exports = app;
