@@ -11,7 +11,6 @@ const router = express.Router();
 // **Register a New Mock Device**
 router.post("/register", async (req, res) => {
   const { userId, name } = req.body;
-
   try {
     let device = await MockDevice.findOne({ userId });
 
