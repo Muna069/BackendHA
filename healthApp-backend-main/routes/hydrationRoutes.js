@@ -1,13 +1,13 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const Hydration = require('../models/hydrationModel');
-const cron = require('node-cron'); // 🛠 Import Hydration model
+const Hydration = require("../models/hydrationModel");
+const cron = require("node-cron"); // 🛠 Import Hydration model
 
 // POST /api/hydration/log ➔ Log water intake
-router.post('/add/:userId', async (req, res) => {
+router.post("/add/:userId", async (req, res) => {
   const { userId, amount } = req.body;
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toISOString().split("T")[0];
 
   try {
     let hydration = await Hydration.findOne({ userId });
@@ -23,16 +23,19 @@ router.post('/add/:userId', async (req, res) => {
 
     hydration.hydrationProgress += amount;
     await hydration.save();
-    res.json({ message: 'Water logged!', totalIntake: hydration.hydrationProgress });
+    res.json({
+      message: "Water logged!",
+      totalIntake: hydration.hydrationProgress,
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
 // GET /api/hydration/add/:userId ➔ Get today's hydration
-router.get('/:userId', async (req, res) => {
+router.get("/:userId", async (req, res) => {
   const { userId } = req.params;
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toISOString().split("T")[0];
 
   try {
     let hydration = await Hydration.findOne({ userId });
@@ -55,7 +58,8 @@ router.get('/:userId', async (req, res) => {
 
 // CRON job to reset hydration progress daily
 
-cron.schedule('0 0 * * *', async () => {
+/**
+ cron.schedule('0 0 * * *', async () => {
   console.log('🔄 Running daily hydration reset job...');
   const today = new Date().toISOString().split('T')[0];
 
@@ -73,6 +77,22 @@ cron.schedule('0 0 * * *', async () => {
     console.log('✅ Hydration progress reset for all users.');
   } catch (error) {
     console.error('❌ Error resetting hydration progress:', error.message);
+  }
+});
+ */
+
+cron.schedule("0 0 * * *", async () => {
+  console.log("🔄 Running daily hydration reset job...");
+  const today = new Date().toISOString().split("T")[0];
+
+  try {
+    await Hydration.updateMany(
+      {},
+      { hydrationProgress: 0, hydrationDate: today }
+    );
+    console.log("✅ Hydration progress reset for all users.");
+  } catch (error) {
+    console.error("❌ Error resetting hydration progress:", error.message);
   }
 });
 
