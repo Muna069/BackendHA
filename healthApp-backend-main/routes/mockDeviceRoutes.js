@@ -167,7 +167,6 @@ router.get("/history/:userId", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
 router.get("/history/:userId/:date", async(req, res)=>{
   try{
     const date = new Date(req.params.date);
