@@ -254,7 +254,7 @@ router.post('/forgot-password', async (req, res) => {
       await user.save();
   
       // Send the reset link via email
-      const resetUrl = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
+      const resetUrl = `HealthApp/reset-password/${resetToken}`;
       await sendEmail(user.email, 'Reset Your Password', `Reset your password here: ${resetUrl}`);
   
       res.status(200).json({ message: 'Reset link sent to your email' });
