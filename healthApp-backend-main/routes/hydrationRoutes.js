@@ -5,7 +5,7 @@ const Hydration = require('../models/hydrationModel');
 const cron = require('node-cron'); // 🛠 Import Hydration model
 
 // POST /api/hydration/log ➔ Log water intake
-router.post('/log', async (req, res) => {
+router.post('/add/:userId', async (req, res) => {
   const { userId, amount } = req.body;
   const today = new Date().toISOString().split('T')[0];
 
@@ -30,7 +30,7 @@ router.post('/log', async (req, res) => {
 });
 
 // GET /api/hydration/add/:userId ➔ Get today's hydration
-router.get('/add/:userId', async (req, res) => {
+router.get('/:userId', async (req, res) => {
   const { userId } = req.params;
   const today = new Date().toISOString().split('T')[0];
 
