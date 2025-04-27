@@ -1,22 +1,23 @@
 const mongoose = require('mongoose');
 
 const HydrationSchema = new mongoose.Schema({
-
-
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    required: true,
+    ref: 'User',
+  },
   hydrationGoal: {
     type: Number,
-    default: 2000, // 💧 Default hydration goal in ml (you can change it)
+    default: 2000,
   },
   hydrationProgress: {
     type: Number,
-    default: 0, // 💧 How much water they drank today
+    default: 0,
   },
   hydrationDate: {
     type: String,
-    default: new Date().toISOString().split('T')[0], // 💧 Track last updated date (as "YYYY-MM-DD")
+    default: new Date().toISOString().split('T')[0],
   },
-
-  // ... any other fields
 });
 
-module.exports = mongoose.model('hydration', HydrationSchema);
+module.exports = mongoose.model('Hydration', HydrationSchema);
