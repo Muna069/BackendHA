@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const Hydration = require('../models/hydration'); // 🛠 Import Hydration model
+const Hydration = require('../models/hydrationModel'); // 🛠 Import Hydration model
 
 // POST /api/hydration/log ➔ Log water intake
 router.post('/log', async (req, res) => {
