@@ -1,6 +1,8 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 const express = require('express');
 const router = express.Router();
-const Hydration = require('../models/hydrationModel'); // 🛠 Import Hydration model
+const Hydration = require('../models/hydrationModel');
+const cron = require('node-cron'); // 🛠 Import Hydration model
 
 // POST /api/hydration/log ➔ Log water intake
 router.post('/log', async (req, res) => {
@@ -52,7 +54,6 @@ router.get('/add/:userId', async (req, res) => {
 });
 
 // CRON job to reset hydration progress daily
-const cron = require('node-cron');
 
 cron.schedule('0 0 * * *', async () => {
   console.log('🔄 Running daily hydration reset job...');
