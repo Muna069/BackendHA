@@ -1,14 +1,14 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 const express = require('express');
 const router = express.Router();
-const User = require('../models/userRoutes');
+const hydration = require('../models/hydrationRoute');
 
 // POST /api/water/log ➔ Log water intake
 router.post('/log', async (req, res) => {
   const { userId, amount } = req.body;
   const today = new Date().toISOString().split('T')[0];
   try {
-    const user = await User.findById(userId);
+    const user = await hydration.findById(userId);
 
     if (user.hydrationDate !== today) {
       user.hydrationProgress = 0; // Reset progress if it's a new day
@@ -28,7 +28,7 @@ router.get('/add/:userId', async (req, res) => {
   const { userId } = req.params;
   const today = new Date().toISOString().split('T')[0];
   try {
-    const user = await User.findById(userId);
+    const user = await hydration.findById(userId);
 
     if (user.hydrationDate !== today) {
       user.hydrationProgress = 0;
@@ -47,7 +47,7 @@ cron.schedule('0 0 * * *', async () => {
   const today = new Date().toISOString().split('T')[0];
 
   try {
-    const users = await User.find({});
+    const users = await hydration.find({});
 
     for (const user of users) {
       if (user.hydrationDate !== today) {
