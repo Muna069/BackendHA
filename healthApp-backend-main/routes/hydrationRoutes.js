@@ -2,11 +2,12 @@
 const express = require("express");
 const router = express.Router();
 const Hydration = require("../models/hydrationModel");
-const cron = require("node-cron"); // 🛠 Import Hydration model
+const cron = require("node-cron");
 
-// POST /api/hydration/log ➔ Log water intake
+// POST /api/hydration/add/:userId ➔ Log water intake
 router.post("/add/:userId", async (req, res) => {
-  const { userId, amount } = req.body;
+  const { amount } = req.body; // ✅ get amount from body
+  const { userId } = req.params; // ✅ get userId from URL param
   const today = new Date().toISOString().split("T")[0];
 
   try {
@@ -23,6 +24,7 @@ router.post("/add/:userId", async (req, res) => {
 
     hydration.hydrationProgress += amount;
     await hydration.save();
+
     res.json({
       message: "Water logged!",
       totalIntake: hydration.hydrationProgress,
@@ -32,7 +34,7 @@ router.post("/add/:userId", async (req, res) => {
   }
 });
 
-// GET /api/hydration/add/:userId ➔ Get today's hydration
+// GET /api/hydration/:userId ➔ Get today's hydration
 router.get("/:userId", async (req, res) => {
   const { userId } = req.params;
   const today = new Date().toISOString().split("T")[0];
@@ -57,30 +59,6 @@ router.get("/:userId", async (req, res) => {
 });
 
 // CRON job to reset hydration progress daily
-
-/**
- cron.schedule('0 0 * * *', async () => {
-  console.log('🔄 Running daily hydration reset job...');
-  const today = new Date().toISOString().split('T')[0];
-
-  try {
-    const hydrations = await Hydration.find({});
-
-    for (const hydration of hydrations) {
-      if (hydration.hydrationDate !== today) {
-        hydration.hydrationProgress = 0;
-        hydration.hydrationDate = today;
-        await hydration.save();
-      }
-    }
-
-    console.log('✅ Hydration progress reset for all users.');
-  } catch (error) {
-    console.error('❌ Error resetting hydration progress:', error.message);
-  }
-});
- */
-
 cron.schedule("0 0 * * *", async () => {
   console.log("🔄 Running daily hydration reset job...");
   const today = new Date().toISOString().split("T")[0];
