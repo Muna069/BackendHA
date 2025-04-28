@@ -23,6 +23,7 @@ const mealRoutes = require('./routes/mealRoutes');
 const mockDeviceRoutes = require('./routes/mockDeviceRoutes')
 const notificationRoutes = require('./routes/notificationRoutes');
 const hydrationRoutes = require('./routes/hydrationRoutes');
+const workoutProgressRoutes = require ('./routes/workoutProgressRoutes');
 
 app.use(express.json());
 app.use(cookieParser());
@@ -47,6 +48,7 @@ app.use('/api/meal', mealRoutes);
 app.use('/api/device', mockDeviceRoutes);
 app.use('/api/notification', notificationRoutes);
 app.use('/api/hydration', hydrationRoutes);
+app.use('/api/workoutProgress', workoutProgressRoutes);
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
