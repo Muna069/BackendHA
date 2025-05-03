@@ -200,7 +200,7 @@ router.get("/ai-meal-recommendation/:userId", async (req, res) => {
 });
 
 // Cron job to generate daily AI meal & hydration recommendations for all users
-cron.schedule("23 14 * * *", async () => {
+cron.schedule("31 14 * * *", async () => {
   try {
       console.log("Running AI meal & hydration recommendation job...");
 
