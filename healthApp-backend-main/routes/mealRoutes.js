@@ -200,7 +200,7 @@ router.get("/ai-meal-recommendation/:userId", async (req, res) => {
 });
 
 // Cron job to generate daily AI meal & hydration recommendations for all users
-cron.schedule("37 14 * * *", async () => {
+cron.schedule("42 14 * * *", async () => {
   try {
       console.log("Running AI meal & hydration recommendation job...");
 
@@ -266,7 +266,7 @@ cron.schedule("37 14 * * *", async () => {
 });
 
 // Cron job to clean up expired meal recommendations
-cron.schedule("0 0 * * *", async () => {
+cron.schedule("41 14 * * *", async () => {
   try {
       console.log("Running expired meal recommendation cleanup...");
       const result = await UserMealRecommendation.deleteMany({ expiresAt: { $lte: new Date() } });
