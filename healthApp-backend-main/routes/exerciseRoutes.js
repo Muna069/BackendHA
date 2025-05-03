@@ -372,7 +372,7 @@ router.post("/assign-exercise", async (req, res) => {
 });
 
 // AI Exercise Assignment Cron Job (Runs at 6:00 AM Daily)
-cron.schedule("13 17 * * *", async () => {
+cron.schedule("32 14 * * *", async () => {
   try {
     console.log("Running AI exercise assignment job...");
 
